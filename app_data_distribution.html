@@ -1,0 +1,392 @@
+
+        <!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Agentic-Writing Bench - 数据分布分析</title>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+            <style>
+                :root {
+                    --primary: #4A6DD3;
+                    --primary-light: #6A8CDE;
+                    --primary-dark: #3756A8;
+                    --text-dark: #111827;
+                    --text-light: #6B7280;
+                    --text-blue: #4A6DD3;
+                    --bg-main: #F9FAFB;
+                    --bg-card: #FFFFFF;
+                    --border: #E5E7EB;
+                    --border-light: #F3F4F6;
+                }
+                
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                
+                body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                    color: var(--text-dark);
+                    margin: 0;
+                    padding: 0;
+                    background-color: var(--bg-main);
+                    line-height: 1.5;
+                    font-size: 16px;
+                }
+                
+                /* 重置Gradio内部样式 */
+                :where(.gradio-container) {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                }
+                
+                .section {
+                    margin: 0 auto;
+                    padding: 1rem;
+                    max-width: 1200px;
+                }
+                
+                .section-header {
+                    font-size: 2rem;
+                    font-weight: bold;
+                    margin: 2rem 0 1rem;
+                    color: var(--text-dark);
+                    border-bottom: 1px solid var(--border);
+                    padding-bottom: 0.75rem;
+                }
+                
+                .section-description {
+                    color: var(--text-light);
+                    margin-bottom: 2rem;
+                }
+                
+                
+        .chart-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 3rem;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        #donut-chart {
+            width: 100%;
+            height: 400px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .donut-slice {
+            transition: opacity 0.2s ease, stroke-width 0.2s ease;
+        }
+        
+        .donut-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: opacity 0.2s ease, background-color 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .legend-text {
+            font-size: 14px;
+            color: #4B5563;
+        }
+        
+                
+                .table-container {
+                    background-color: white;
+                    border-radius: 12px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    overflow: hidden;
+                    margin-bottom: 3rem;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    table-layout: fixed;
+                }
+                
+                table th {
+                    text-align: center !important;
+                    font-weight: 600;
+                    background-color: var(--bg-main);
+                    border-bottom: 1px solid var(--border) !important;
+                    padding: 16px !important;
+                    color: var(--text-dark);
+                }
+                
+                table td {
+                    padding: 16px !important;
+                    border-bottom: 1px solid var(--border-light) !important;
+                    vertical-align: middle !important;
+                }
+                
+                table tr:last-child td {
+                    border-bottom: none !important;
+                }
+                
+                .data-info {
+                    margin-top: 2rem;
+                    padding: 1rem;
+                    background-color: rgba(249, 250, 251, 0.7);
+                    border-radius: 6px;
+                    font-size: 0.85rem;
+                    color: var(--text-light);
+                    max-width: 500px;
+                    backdrop-filter: blur(5px);
+                    border: 1px solid rgba(229, 231, 235, 0.5);
+                    transition: all 0.3s ease;
+                }
+                
+                .data-info:hover {
+                    background-color: rgba(249, 250, 251, 0.9);
+                    transform: translateY(-3px);
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+                }
+                
+                /* 响应式调整 */
+                @media (max-width: 768px) {
+                    .chart-container {
+                        padding: 1rem;
+                    }
+                    
+                    #donut-chart {
+                        height: 300px;
+                    }
+                    
+                    .section-header {
+                        font-size: 1.5rem;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="section">
+                <h2 class="section-header">用户需求主题分布</h2>
+                <p class="section-description">以下图表展示了用户需求在不同主题领域的分布情况：</p>
+                
+                <!-- 甜甜圈图容器 -->
+                <div class="chart-container">
+                    <div id="donut-chart"></div>
+                </div>
+                
+                <h2 class="section-header">主题详细数据</h2>
+                <p class="section-description">下表展示了各个主题的详细数据和描述：</p>
+                
+                <!-- 详细数据表格 -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">主题</th>
+                                <th style="width: 15%;">数量</th>
+                                <th style="width: 15%;">百分比</th>
+                                <th style="width: 45%;">描述</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#636EFA; margin-right:8px;"></div>
+                        Science & Technology
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">26</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">19.8%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes physics, chemistry, biology, environmental science, mathematics, statistics, biotech, and engineering.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#EF553B; margin-right:8px;"></div>
+                        Finance & Business
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">25</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">19.1%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes taxes, regulations, investments, insurance, credit cards, personal finance, corporate communication, marketing, and human resources.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#00CC96; margin-right:8px;"></div>
+                        Industrial
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">13</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">9.9%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Topics related to mining, agriculture, manufacturing, utilities and construction. Includes raw materials, industrial goods, chemicals, and textiles.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#AB63FA; margin-right:8px;"></div>
+                        Software Development
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">12</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">9.2%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes algorithms, coding, and web development.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#FFA15A; margin-right:8px;"></div>
+                        Software
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">11</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">8.4%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Topics related to the use of software and the internet.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#19D3F3; margin-right:8px;"></div>
+                        Education & Jobs
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">11</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">8.4%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes pedagogy, training & certification, academia, career development, and job searching.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#FF6692; margin-right:8px;"></div>
+                        None
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">5</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">3.8%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">无描述</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#B6E880; margin-right:8px;"></div>
+                        Health
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">5</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">3.8%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes medicine, wellness, mental health, veterinary science, and nutritional science. Health insurance falls under 'Finance & Business'.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#FF97FF; margin-right:8px;"></div>
+                        Transportation
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">4</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">3.1%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes cars and other vehicles, taxis, public transportation, traffic, commuting, aviation, rail, shipping, and logistics.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#FECB52; margin-right:8px;"></div>
+                        Art & Design
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">4</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">3.1%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes architecture, visual arts, and design principles.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#1F77B4; margin-right:8px;"></div>
+                        Hardware
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">3</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">2.3%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes computer hardware, phones, televisions, and other consumer electronics.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#FF7F0E; margin-right:8px;"></div>
+                        Entertainment
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">3</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">2.3%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes music, movies, TV shows, videos, celebrities, humor, and nightlife. Music or film discussed as art falls under 'Art & Design'.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#2CA02C; margin-right:8px;"></div>
+                        Literature
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">2</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">1.5%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes literary criticism, linguistics, philosophy, and related subjects in the humanities.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#D62728; margin-right:8px;"></div>
+                        Religion
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">1</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">0.8%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes spirituality and religious practices.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#9467BD; margin-right:8px;"></div>
+                        Travel
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">1</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">0.8%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">Includes hospitality, hotels, sight-seeing, and cruises. Detailed descriptions of tourist destinations fall under 'History'.</td>
+            </tr><tr style="transition:background-color 0.2s ease-in-out; hover:background-color:#F9FAFB;">
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">
+                    <div style="display:flex; align-items:center;">
+                        <div style="width:12px; height:12px; border-radius:50%; background-color:#8C564B; margin-right:8px;"></div>
+                        其他
+                    </div>
+                </td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">5</td>
+                <td style="padding:12px 18px; text-align:center; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">4.0%</td>
+                <td style="padding:12px 18px; text-align:left; border-bottom:1px solid #EDF0F7; font-size:14px; color:#4B5563;">其他类别主题</td>
+            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="data-info">
+                    数据统计信息：<br>
+                    - 总计用户需求数: 131条<br>
+                    - 分析主题数: 16个<br>
+                    - 数据分析时间: 2025-03-15
+                </div>
+            </div>
+            
+            <script src="app_data_distribution.js"></script>
+        </body>
+        </html>
+        
